@@ -21,28 +21,19 @@
 Some unit tests for public/private key objects.
 """
 
-import unittest
 import os
+import unittest
 from binascii import hexlify
 from hashlib import md5
-
-from paramiko import (
-    RSAKey,
-    RSASHA256Key,
-    RSASHA512Key,
-    DSSKey,
-    ECDSAKey,
-    Ed25519Key,
-    Message,
-    util,
-)
-from paramiko.py3compat import StringIO, byte_chr, b, bytes, PY2
 
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateNumbers
 from mock import patch
 
-from .util import _support
+from paramiko import (DSSKey, ECDSAKey, Ed25519Key, Message, RSAKey,
+                      RSASHA256Key, RSASHA512Key, SSHException, util)
+from paramiko.py3compat import PY2, StringIO, b, byte_chr, bytes
 
+from .util import _support
 
 # from openssh's ssh-keygen
 PUB_RSA = "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEA049W6geFpmsljTwfvI1UmKWWJPNFI74+vNKTk4dmzkQY2yAMs6FhlvhlI8ysU4oj71ZsRYMecHbBbxdN79+JRFVYTKaLqjwGENeTd+yv4q+V2PvZv3fLnzApI3l7EJCqhWwJUHJ1jAkZzqDx0tyOL4uoZpww3nmE0kb3y21tH4c="  # noqa
@@ -552,6 +543,15 @@ class KeyTest(unittest.TestCase):
     def test_load_openssh_format_RSA_nopad(self):
         # check just not exploding with 'Invalid key'
         RSAKey.from_private_key_file(_support("test_rsa_openssh_nopad.key"))
+
+    def test_load_openssh_wrong_type(self):
+        # SSHClient.auth() attempts every key type for key_filenames
+        # needs loading to fail "correctly" for wrong type
+        self.assertRaises(
+            SSHException,
+            DSSKey.from_private_key_file,
+            _support("test_rsa_openssh_nopad.key"),
+        )
 
     def test_stringification(self):
         key = RSAKey.from_private_key_file(_support("test_rsa.key"))
